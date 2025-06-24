@@ -10,12 +10,13 @@ class FlashcardViewModel: ObservableObject {
     @Published var savedTopics: [SavedTopic] = []
     @Published var numberOfFlashcards: Int = 3
     
-    private let flashcardService: FlashcardServiceProtocol
+    private let textService: TextServiceProtocol
     private var lastRequestTime: Date?
     private let minimumRequestInterval: TimeInterval = 10 // 10 seconds between requests for Gemini
     
-    init(flashcardService: FlashcardServiceProtocol = GeminiService()) {
-        self.flashcardService = flashcardService
+    init(textService: TextServiceProtocol = GeminiService()) {
+        self.textService = textService
+        loadSavedTopics()
     }
     
     var canGenerateFlashcards: Bool {
@@ -52,7 +53,7 @@ class FlashcardViewModel: ObservableObject {
         lastRequestTime = Date()
         
         do {
-            let generatedFlashcards = try await flashcardService.generateFlashcards(from: userInput)
+            let generatedFlashcards = try await textService.generateFlashcards(from: userInput, count: numberOfFlashcards)
             flashcards = generatedFlashcards
         } catch {
             errorMessage = error.localizedDescription

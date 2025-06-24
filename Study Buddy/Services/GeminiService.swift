@@ -1,6 +1,6 @@
 import Foundation
 
-class GeminiService: FlashcardServiceProtocol {
+class GeminiService: TextServiceProtocol {
     private let apiKey: String
     private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     
@@ -8,13 +8,13 @@ class GeminiService: FlashcardServiceProtocol {
         self.apiKey = ConfigurationManager.shared.geminiAPIKey
     }
     
-    func generateFlashcards(from notes: String) async throws -> [Flashcard] {
+    func generateFlashcards(from notes: String, count: Int) async throws -> [Flashcard] {
         let prompt = """
-        Given the following notes or topics, generate 3 flashcards in JSON array format. Each flashcard should have a 'question' and an 'answer' field.
+        Given the following notes or topics, generate \(count) flashcards in JSON array format. Each flashcard should have a 'question' and an 'answer' field.
 
         Notes: \(notes)
 
-        Return only the JSON array in this exact format:
+        Return ONLY the JSON array, with no explanation, no markdown, and no code block. Example:
         [
           {"question": "What is ...?", "answer": "..."},
           {"question": "Explain ...", "answer": "..."},
@@ -82,20 +82,9 @@ class GeminiService: FlashcardServiceProtocol {
             
             print("Gemini Response Content: \(content)")
             
-            // Try to extract JSON from the response
-            // ... inside your GeminiService, after getting 'content' from the response:
             var cleanedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Remove markdown code block markers if present
-            if cleanedContent.hasPrefix("```json") {
-                cleanedContent = cleanedContent.replacingOccurrences(of: "```json", with: "")
-            }
-            if cleanedContent.hasPrefix("```") {
-                cleanedContent = cleanedContent.replacingOccurrences(of: "```", with: "")
-            }
-            if cleanedContent.hasSuffix("```") {
-                cleanedContent = String(cleanedContent.dropLast(3))
-            }
+            if cleanedContent.hasPrefix("```json") { cleanedContent = String(cleanedContent.dropFirst(7)) }
+            if cleanedContent.hasSuffix("```") { cleanedContent = String(cleanedContent.dropLast(3)) }
             cleanedContent = cleanedContent.trimmingCharacters(in: .whitespacesAndNewlines)
 
             if let jsonData = cleanedContent.data(using: .utf8),
@@ -103,7 +92,7 @@ class GeminiService: FlashcardServiceProtocol {
                 return flashcards
             } else {
                 // fallback
-                return createFlashcardsFromText(cleanedContent)
+                return []
             }
             
         } catch {
@@ -112,19 +101,88 @@ class GeminiService: FlashcardServiceProtocol {
         }
     }
     
-    private func createFlashcardsFromText(_ text: String) -> [Flashcard] {
-        let lines = text.components(separatedBy: .newlines).filter { !$0.isEmpty }
-        var flashcards: [Flashcard] = []
-        
-        for (index, line) in lines.prefix(3).enumerated() {
-            let question = "Question \(index + 1): What is the key point about this topic?"
-            let answer = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            flashcards.append(Flashcard(question: question, answer: answer))
+    func summarizeText(from text: String, wordCount: Int) async throws -> String {
+        let prompt = """
+        Summarize the following text in approximately \(wordCount) words. Provide the summary as a single block of text, without any introductory phrases like "Here is the summary:".
+
+        Text:
+        "\(text)"
+
+        Summary:
+        """
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                ["parts": [["text": prompt]]]
+            ],
+            "generationConfig": [
+                "temperature": 0.5,
+                "maxOutputTokens": 250 // Max tokens for the output
+            ]
+        ]
+
+        guard let url = URL(string: "\(endpoint)?key=\(apiKey)"),
+              let httpBody = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw FlashcardError.invalidRequest
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = httpBody
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let summary = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw FlashcardError.parsingError
         }
         
-        return flashcards.isEmpty ? [
-            Flashcard(question: "What did you learn?", answer: text)
-        ] : flashcards
+        return summary.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    func humanizeText(from text: String) async throws -> String {
+        let prompt = """
+        Rewrite the following text to make it sound more natural, conversational, and human-like.
+        Avoid overly formal language and complex sentence structures, but ensure the core meaning remains exactly the same.
+
+        Original Text:
+        "\(text)"
+
+        Humanized Text:
+        """
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                ["parts": [["text": prompt]]]
+            ],
+            "generationConfig": [
+                "temperature": 0.8,
+                "maxOutputTokens": 400
+            ]
+        ]
+
+        let apiKey = ConfigurationManager.shared.geminiAPIKey
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        
+        guard let url = URL(string: "\(endpoint)?key=\(apiKey)"),
+              let httpBody = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw FlashcardError.invalidRequest
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = httpBody
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let humanizedResult = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw FlashcardError.parsingError
+        }
+        
+        return humanizedResult.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
