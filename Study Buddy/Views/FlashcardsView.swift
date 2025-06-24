@@ -18,11 +18,23 @@ struct FlashcardsView: View {
             Text("Enter your notes or topics:")
                 .font(.headline)
 
-            TextEditor(text: $viewModel.userInput)
-                .frame(height: 100)
-                .border(Color.gray, width: 1)
-                .cornerRadius(8)
-                .padding(.bottom)
+            ZStack(alignment: .topTrailing) {
+                TextEditor(text: $viewModel.userInput)
+                    .frame(height: 100)
+                    .border(Color.gray, width: 1)
+                    .cornerRadius(8)
+                    .padding(.bottom)
+
+                if !viewModel.userInput.isEmpty {
+                    Button(action: {
+                        viewModel.userInput = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+            }
 
             Button(action: {
                 hideKeyboard()

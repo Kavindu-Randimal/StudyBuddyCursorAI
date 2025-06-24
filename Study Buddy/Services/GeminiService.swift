@@ -143,13 +143,31 @@ class GeminiService: TextServiceProtocol {
     
     func humanizeText(from text: String) async throws -> String {
         let prompt = """
-        Rewrite the following text to make it sound more natural, conversational, and human-like.
-        Avoid overly formal language and complex sentence structures, but ensure the core meaning remains exactly the same.
+        Your mission is to rewrite the following text, ensuring it is completely indistinguishable from human writing and will pass any AI detection tool with a 100% human score. To do this, you must adopt the persona of a passionate, knowledgeable expert explaining a topic to an intelligent audience. Your writing style must be highly dynamic and engaging.
+
+        Follow these non-negotiable rules:
+
+        1.  **Maximize Perplexity & Burstiness:** This is the highest priority. You MUST create a rich tapestry of sentence structures. Weave together long, elaborate sentences with short, impactful ones. The rhythm and flow should feel spontaneous and unpredictable. A uniform structure is an instant failure.
+
+        2.  **Embrace Human-Like "Imperfections":** AI text is often too perfect. You must deliberately introduce natural-sounding human elements.
+            -   **Use Sentence Fragments:** For emphasis or pacing, you are encouraged to use a sentence fragment. For example: "A major discovery. And one that changed everything."
+            -   **Use Rhetorical Questions:** Engage the reader by posing one or two questions within the text, like "So, what does this all mean?"
+
+        3.  **Adopt a Strong, Active Voice:** Write with confidence and authority. Every sentence should be in the active voice. Avoid passive constructions at all costs.
+
+        4.  **Use Rich Vocabulary and Idioms:** Do not use generic, robotic language. Incorporate vivid vocabulary and common English idioms where they fit naturally. This will make the text feel more authentic.
+
+        5.  **Strictly Avoid AI Hallmarks:**
+            -   NEVER start sentences with generic transition words like "Additionally," "Furthermore," "In conclusion," "Moreover," etc.
+            -   NEVER use a list-like format.
+            -   Ensure sentence openers are constantly varied.
+
+        6.  **Maintain 100% Factual Accuracy:** The core meaning, facts, and nuance of the original text must be perfectly preserved.
 
         Original Text:
         "\(text)"
 
-        Humanized Text:
+        Rewritten Human Text (output only the rewritten text, with no introductory phrases):
         """
 
         let requestBody: [String: Any] = [
@@ -157,8 +175,8 @@ class GeminiService: TextServiceProtocol {
                 ["parts": [["text": prompt]]]
             ],
             "generationConfig": [
-                "temperature": 0.8,
-                "maxOutputTokens": 400
+                "temperature": 1.0, // Set to maximum creativity for the most unpredictable output
+                "maxOutputTokens": 600
             ]
         ]
 
@@ -183,6 +201,50 @@ class GeminiService: TextServiceProtocol {
         }
         
         return humanizedResult.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    func translateText(from text: String, to language: String) async throws -> String {
+        let prompt = """
+        Translate the following text into \(language).
+        Provide only the translated text itself, without any additional comments, explanations, or quotation marks.
+
+        Original Text:
+        "\(text)"
+
+        Translated Text:
+        """
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                ["parts": [["text": prompt]]]
+            ],
+            "generationConfig": [
+                "temperature": 0.3,
+                "maxOutputTokens": 800
+            ]
+        ]
+
+        let apiKey = ConfigurationManager.shared.geminiAPIKey
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        
+        guard let url = URL(string: "\(endpoint)?key=\(apiKey)"),
+              let httpBody = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw FlashcardError.invalidRequest
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = httpBody
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let translatedResult = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw FlashcardError.parsingError
+        }
+        
+        return translatedResult.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

@@ -1,18 +1,17 @@
 import SwiftUI
 
-struct SummarizeView: View {
-    @StateObject private var viewModel = SummarizeViewModel()
-    @State private var showCopiedMessage = false
+struct TranslateView: View {
+    @StateObject private var viewModel = TranslateViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Summarize Text")
+            Text("Translate Text")
                 .font(.largeTitle)
                 .bold()
                 .padding(.top, 16)
                 .padding(.bottom, 8)
 
-            Text("Enter text to summarize:")
+            Text("Enter text to translate:")
                 .font(.headline)
 
             ZStack(alignment: .topTrailing) {
@@ -22,9 +21,7 @@ struct SummarizeView: View {
                     .cornerRadius(8)
 
                 if !viewModel.userInput.isEmpty {
-                    Button(action: {
-                        viewModel.userInput = ""
-                    }) {
+                    Button(action: { viewModel.userInput = "" }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.gray)
                             .padding(8)
@@ -32,24 +29,36 @@ struct SummarizeView: View {
                 }
             }
 
-            HStack {
-                Text("Summary Word Count:")
-                Spacer()
-                Text("\(viewModel.wordCount)")
-                    .fontWeight(.bold)
-                Stepper("", value: $viewModel.wordCount, in: 20...200, step: 10)
-                    .labelsHidden()
+            // Dropdown Language Picker
+            Menu {
+                Picker("Translate to:", selection: $viewModel.targetLanguage) {
+                    ForEach(viewModel.availableLanguages, id: \.self) { language in
+                        Text(language).tag(language)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text("Translate to:")
+                    Spacer()
+                    Text(viewModel.targetLanguage)
+                        .fontWeight(.semibold)
+                    Image(systemName: "chevron.up.chevron.down")
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .foregroundColor(.primary)
             }
             .padding(.vertical, 8)
 
             Button(action: {
                 hideKeyboard()
-                Task { await viewModel.summarizeText() }
+                Task { await viewModel.translateText() }
             }) {
                 if viewModel.isLoading {
                     ProgressView()
                 } else {
-                    Text("Summarize")
+                    Text("Translate")
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -61,37 +70,21 @@ struct SummarizeView: View {
                     .font(.caption)
             }
 
-            if !viewModel.summary.isEmpty {
+            if !viewModel.translatedText.isEmpty {
                 HStack {
-                    Text("Summary:")
+                    Text("Translation:")
                         .font(.title2)
                         .fontWeight(.bold)
                     Spacer()
-                    if showCopiedMessage {
-                        Text("Copied!")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                            .transition(.opacity)
-                    }
                     Button(action: {
-                        UIPasteboard.general.string = viewModel.summary
-                        withAnimation {
-                            showCopiedMessage = true
-                        }
-                        // Hide the message after 2 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showCopiedMessage = false
-                            }
-                        }
+                        UIPasteboard.general.string = viewModel.translatedText
                     }) {
                         Image(systemName: "doc.on.doc")
-                            .imageScale(.large)
                     }
                 }
                 
                 ScrollView {
-                    Text(viewModel.summary)
+                    Text(viewModel.translatedText)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color(.systemGray6))

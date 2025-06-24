@@ -14,9 +14,14 @@ struct ContentView: View {
                 }
             
             HumanizerView()
-                            .tabItem {
-                                Label("Humanizer", systemImage: "person.wave.2")
-                            }
+                .tabItem {
+                    Label("Humanizer", systemImage: "person.wave.2")
+                }
+            
+            TranslateView()
+                .tabItem {
+                    Label("Translate", systemImage: "globe")
+                }
         }
     }
 }
