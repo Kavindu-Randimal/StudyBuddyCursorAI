@@ -22,6 +22,12 @@ struct ContentView: View {
                 .tabItem {
                     Label("Translate", systemImage: "globe")
                 }
+            
+            // Add the new Grammar Checker tab
+            GrammarCheckerView()
+                .tabItem {
+                    Label("Grammar", systemImage: "text.badge.checkmark")
+                }
         }
     }
 }

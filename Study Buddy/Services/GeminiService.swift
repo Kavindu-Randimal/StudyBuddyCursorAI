@@ -246,6 +246,51 @@ class GeminiService: TextServiceProtocol {
         
         return translatedResult.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+    
+    func checkGrammar(for text: String) async throws -> String {
+        let prompt = """
+        You are an expert proofreader. Correct any spelling mistakes, grammatical errors, and punctuation issues in the following text.
+        Preserve the original meaning and tone.
+        Return only the corrected text, without any explanations, comments, or quotation marks.
+
+        Original Text:
+        "\(text)"
+
+        Corrected Text:
+        """
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                ["parts": [["text": prompt]]]
+            ],
+            "generationConfig": [
+                "temperature": 0.1, // Very low temperature for precise, factual corrections
+                "maxOutputTokens": 800
+            ]
+        ]
+
+        let apiKey = ConfigurationManager.shared.geminiAPIKey
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        
+        guard let url = URL(string: "\(endpoint)?key=\(apiKey)"),
+              let httpBody = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw FlashcardError.invalidRequest
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = httpBody
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let correctedResult = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw FlashcardError.parsingError
+        }
+        
+        return correctedResult.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 // MARK: - Gemini API Response Models
