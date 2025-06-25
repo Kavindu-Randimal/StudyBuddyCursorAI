@@ -19,6 +19,8 @@ struct TranslateView: View {
                     .frame(minHeight: 150, maxHeight: 300)
                     .border(Color.gray, width: 1)
                     .cornerRadius(8)
+                    .foregroundColor(.primary)
+                    .background(Color(.systemBackground))
 
                 if !viewModel.userInput.isEmpty {
                     Button(action: { viewModel.userInput = "" }) {
