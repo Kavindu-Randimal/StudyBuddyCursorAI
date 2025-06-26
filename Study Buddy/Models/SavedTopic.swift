@@ -1,6 +1,6 @@
 import Foundation
 
-struct SavedTopic: Identifiable, Codable {
+struct SavedTopic: Identifiable, Codable,Equatable {
     let id: UUID
     let title: String
     let notes: String
@@ -14,4 +14,8 @@ struct SavedTopic: Identifiable, Codable {
         self.flashcards = flashcards
         self.date = Date()
     }
-} 
+    
+    static func == (lhs: SavedTopic, rhs: SavedTopic) -> Bool {
+            lhs.id == rhs.id
+        }
+}

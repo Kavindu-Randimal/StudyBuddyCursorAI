@@ -7,11 +7,9 @@ struct HumanizerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Humanize Text")
-                .font(.largeTitle)
-                .bold()
-                .padding(.top, 16)
+                .font(.system(size: 28, weight: .bold))
                 .padding(.bottom, 8)
-
+            
             Text("Enter text to humanize:")
                 .font(.headline)
 
@@ -42,7 +40,7 @@ struct HumanizerView: View {
                     Text("Humanize")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(GradientButtonStyle())
             .disabled(viewModel.userInput.isEmpty)
 
             if let errorMessage = viewModel.errorMessage {
@@ -91,5 +89,8 @@ struct HumanizerView: View {
             Spacer()
         }
         .padding()
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
 } 

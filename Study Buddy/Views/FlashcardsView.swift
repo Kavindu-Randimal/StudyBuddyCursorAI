@@ -6,25 +6,23 @@ struct FlashcardsView: View {
     @State private var showSaveAlert = false
     @State private var topicTitle = ""
     @State private var selectedTopic: SavedTopic?
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Study Buddy")
-                .font(.largeTitle)
-                .bold()
-                .padding(.top, 16)
+            Text("Flash Cards")
+                .font(.system(size: 28, weight: .bold))
                 .padding(.bottom, 8)
-
+            
             Text("Enter your notes or topics:")
                 .font(.headline)
-
+            
             ZStack(alignment: .topTrailing) {
                 TextEditor(text: $viewModel.userInput)
                     .frame(height: 100)
                     .border(Color.gray, width: 1)
                     .cornerRadius(8)
                     .padding(.bottom)
-
+                
                 if !viewModel.userInput.isEmpty {
                     Button(action: {
                         viewModel.userInput = ""
@@ -35,7 +33,7 @@ struct FlashcardsView: View {
                     }
                 }
             }
-
+            
             Button(action: {
                 hideKeyboard()
                 Task { await viewModel.generateFlashcards() }
@@ -46,26 +44,26 @@ struct FlashcardsView: View {
                     Text("Generate Flashcards")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(GradientButtonStyle())
             .disabled(!viewModel.canGenerateFlashcards)
-
+            
             if !viewModel.canGenerateFlashcards && !viewModel.isLoading && !viewModel.userInput.isEmpty {
                 Text("Please wait \(viewModel.timeUntilNextRequest) before next request")
                     .font(.caption)
                     .foregroundColor(.orange)
             }
-
+            
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
             }
-
+            
             if !viewModel.flashcards.isEmpty {
                 Text("Generated Flashcards:")
                     .font(.title2)
                     .fontWeight(.bold)
-
+                
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.flashcards) { flashcard in
@@ -75,34 +73,34 @@ struct FlashcardsView: View {
                     .padding(.vertical)
                 }
                 .frame(minHeight: 200, maxHeight: 350)
-
+                
                 Button("Save This Topic") {
                     showSaveAlert = true
                 }
                 .buttonStyle(.bordered)
                 .padding(.vertical, 4)
             }
-
+            
             /*HStack {
-                Text("Number of Flashcards: \(viewModel.numberOfFlashcards)")
-                Stepper("", value: $viewModel.numberOfFlashcards, in: 1...10)
-            }*/
-
+             Text("Number of Flashcards: \(viewModel.numberOfFlashcards)")
+             Stepper("", value: $viewModel.numberOfFlashcards, in: 1...10)
+             }*/
+            
             Divider().padding(.vertical)
             Text("Saved Topics")
                 .font(.headline)
             List {
                 ForEach(viewModel.savedTopics) { topic in
-                    Button(action: {
+                    VStack(alignment: .leading) {
+                        Text(topic.title)
+                            .fontWeight(.bold)
+                        Text(topic.date, style: .date)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .contentShape(Rectangle()) // Makes the whole cell tappable
+                    .onTapGesture {
                         selectedTopic = topic
-                    }) {
-                        VStack(alignment: .leading) {
-                            Text(topic.title)
-                                .fontWeight(.bold)
-                            Text(topic.date, style: .date)
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
                     }
                 }
                 .onDelete { indexSet in
@@ -111,9 +109,12 @@ struct FlashcardsView: View {
                     }
                 }
             }
-            .frame(height: 200)
+            .frame(height: 300)
         }
-        .padding()
+        .padding([.leading, .trailing, .bottom])
+        .onTapGesture {
+            hideKeyboard()
+        }
         .sheet(item: $selectedTopic) { topic in
             TopicDetailView(topic: topic)
         }
@@ -132,7 +133,7 @@ struct FlashcardsView: View {
 // You can keep the helper views here
 struct FlashcardView: View {
     let flashcard: Flashcard
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Q: \(flashcard.question)")
@@ -153,7 +154,7 @@ struct FlashcardView: View {
 
 struct TopicDetailView: View {
     let topic: SavedTopic
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(topic.title)

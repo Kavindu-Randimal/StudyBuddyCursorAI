@@ -6,9 +6,7 @@ struct GrammarCheckerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Grammar Checker")
-                .font(.largeTitle)
-                .bold()
-                .padding(.top, 16)
+                .font(.system(size: 28, weight: .bold))
                 .padding(.bottom, 8)
 
             Text("Enter text to check:")
@@ -39,7 +37,7 @@ struct GrammarCheckerView: View {
                     Text("Check Grammar")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(GradientButtonStyle())
             .disabled(viewModel.userInput.isEmpty)
 
             if let errorMessage = viewModel.errorMessage {
@@ -72,5 +70,9 @@ struct GrammarCheckerView: View {
             Spacer()
         }
         .padding()
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
-} 
+    
+}

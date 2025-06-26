@@ -44,13 +44,13 @@ struct AnimatedLaunchScreen: View {
                         .shadow(color: Color.purple.opacity(0.5), radius: 10)
                 }
                 // App name with gradient
-                Text("Study Buddy AI")
+                Text("Study Buddy")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .overlay(
                         aiGradient
                             .mask(
-                                Text("Study Buddy AI")
+                                Text("Study Buddy")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
                             )

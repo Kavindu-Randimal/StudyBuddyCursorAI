@@ -6,9 +6,7 @@ struct TranslateView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Translate Text")
-                .font(.largeTitle)
-                .bold()
-                .padding(.top, 16)
+                .font(.system(size: 28, weight: .bold))
                 .padding(.bottom, 8)
 
             Text("Enter text to translate:")
@@ -63,7 +61,7 @@ struct TranslateView: View {
                     Text("Translate")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(GradientButtonStyle())
             .disabled(viewModel.userInput.isEmpty)
 
             if let errorMessage = viewModel.errorMessage {
@@ -96,5 +94,8 @@ struct TranslateView: View {
             Spacer()
         }
         .padding()
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
 } 
