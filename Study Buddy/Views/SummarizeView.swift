@@ -23,9 +23,19 @@ struct SummarizeView: View {
                 Spacer()
             }
 
-            TextEditor(text: $viewModel.userInput)
-                .frame(minHeight: 150, maxHeight: 300)
-                .gradientBorder()
+            ZStack(alignment: .topTrailing) {
+                TextEditor(text: $viewModel.userInput)
+                    .frame(minHeight: 150, maxHeight: 300)
+                    .gradientBorder()
+
+                if !viewModel.userInput.isEmpty {
+                    Button(action: { viewModel.userInput = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+            }
 
             Button(action: {
                 hideKeyboard()

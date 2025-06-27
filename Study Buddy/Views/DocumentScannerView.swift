@@ -131,6 +131,15 @@ class SummarizeViewModel: ObservableObject {
         }
         return nil
     }
+
+    func deleteTopic(_ topic: SavedTopic) {
+        var topics = fetchTopics()
+        topics.removeAll { $0.id == topic.id }
+        if let data = try? JSONEncoder().encode(topics) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+        loadSavedTopics() // <-- Make sure to reload after deleting
+    }
 }
 
 struct SummarizeView: View {
@@ -196,6 +205,31 @@ struct SummarizeView: View {
                         .cornerRadius(8)
                 }
             }
+
+            if viewModel.savedTopics.isEmpty {
+                EmptyStateView(systemImageName: "tray.fill", message: "No saved topics yet!")
+            } else {
+                List {
+                    ForEach(viewModel.savedTopics) { topic in
+                        PremiumCardView(verticalPadding: 2) {
+                            VStack(alignment: .leading) {
+                                Text(topic.title).bold()
+                                Text(topic.date, style: .date).font(.caption).foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .onTapGesture { selectedTopic = topic }
+                    }
+                    .onDelete { indexSet in
+                        indexSet.forEach { i in
+                            viewModel.deleteTopic(viewModel.savedTopics[i])
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .frame(minHeight: 100, maxHeight: 300) // Adjust as needed
+            }
+
             Spacer()
         }
         .padding()
