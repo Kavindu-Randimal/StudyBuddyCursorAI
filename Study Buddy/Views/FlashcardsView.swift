@@ -6,124 +6,109 @@ struct FlashcardsView: View {
     @State private var showSaveAlert = false
     @State private var topicTitle = ""
     @State private var selectedTopic: SavedTopic?
+    @State private var showCustomKeyboard = false
+    @State private var showScanner = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Flash Cards")
-                .font(.system(size: 28, weight: .bold))
-                .padding(.bottom, 8)
+        ZStack {
+            Color(.systemGray6).ignoresSafeArea() // A subtle background color
             
-            Text("Enter your notes or topics:")
-                .font(.headline)
-            
-            ZStack(alignment: .topTrailing) {
-                TextEditor(text: $viewModel.userInput)
-                    .frame(height: 100)
-                    .border(Color.gray, width: 1)
-                    .cornerRadius(8)
-                    .padding(.bottom)
-                
-                if !viewModel.userInput.isEmpty {
-                    Button(action: {
-                        viewModel.userInput = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
-                            .padding(8)
-                    }
-                }
-            }
-            
-            Button(action: {
-                hideKeyboard()
-                Task { await viewModel.generateFlashcards() }
-            }) {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else {
-                    Text("Generate Flashcards")
-                }
-            }
-            .buttonStyle(GradientButtonStyle())
-            .disabled(!viewModel.canGenerateFlashcards)
-            
-            if !viewModel.canGenerateFlashcards && !viewModel.isLoading && !viewModel.userInput.isEmpty {
-                Text("Please wait \(viewModel.timeUntilNextRequest) before next request")
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
-            
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-            
-            if !viewModel.flashcards.isEmpty {
-                Text("Generated Flashcards:")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.flashcards) { flashcard in
-                            FlashcardView(flashcard: flashcard)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Flashcards")
+                        .font(.largeTitle.bold())
+                        .padding(.horizontal)
+
+                    // MARK: - Input Section
+                    PremiumCardView(hasBorder: false) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Button(action: { showScanner = true }) {
+                                    Label("Scan Document", systemImage: "doc.text.viewfinder")
+                                        .font(.headline)
+                                }
+                                .buttonStyle(GradientButtonStyle())
+                                .sheet(isPresented: $showScanner) {
+                                    DocumentScannerView { scannedText in
+                                        viewModel.userInput = scannedText
+                                    }
+                                }
+                                Spacer()
+                            }
+                            Text("Enter your notes or topics:")
+                                .font(.headline)
+                            ZStack(alignment: .topTrailing) {
+                                TextEditor(text: $viewModel.userInput)
+                                    .frame(height: 100)
+                                    .gradientBorder()
+                                if !viewModel.userInput.isEmpty {
+                                    Button(action: { viewModel.userInput = "" }) {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                                    }
+                                    .padding(8)
+                                }
+                            }
                         }
                     }
-                    .padding(.vertical)
+
+                    // MARK: - Action Button
+                    Button(action: {
+                        hideKeyboard()
+                        Task { await viewModel.generateFlashcards() }
+                    }) {
+                        Text("Generate Flashcards")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    .disabled(viewModel.userInput.isEmpty)
+                    .frame(maxWidth: .infinity)
+
+
+                    // MARK: - Generated Flashcards
+                    if !viewModel.flashcards.isEmpty {
+                        Text("Generated Flashcards:")
+                            .font(.title2.bold())
+                            .padding(.horizontal)
+
+                        ForEach(viewModel.flashcards) { flashcard in
+                            PremiumCardView {
+                                FlashcardView(flashcard: flashcard)
+                            }
+                        }
+
+                        Button("Save This Topic") { showSaveAlert = true }
+                            .buttonStyle(GradientButtonStyle())
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    // MARK: - Saved Topics
+                    Divider().padding(.vertical)
+                    Text("Saved Topics")
+                        .font(.title2.bold())
+                        .padding(.horizontal)
+
+                    if viewModel.savedTopics.isEmpty {
+                        EmptyStateView(systemImageName: "tray.fill", message: "No saved topics yet!")
+                    } else {
+                        ForEach(viewModel.savedTopics) { topic in
+                            PremiumCardView(verticalPadding: 2) {
+                                VStack(alignment: .leading) {
+                                    Text(topic.title).bold()
+                                    Text(topic.date, style: .date).font(.caption).foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .onTapGesture { selectedTopic = topic }
+                        }
+                    }
                 }
-                .frame(minHeight: 200, maxHeight: 350)
-                
-                Button("Save This Topic") {
-                    showSaveAlert = true
-                }
-                .buttonStyle(.bordered)
-                .padding(.vertical, 4)
+                .padding(.vertical)
             }
-            
-            /*HStack {
-             Text("Number of Flashcards: \(viewModel.numberOfFlashcards)")
-             Stepper("", value: $viewModel.numberOfFlashcards, in: 1...10)
-             }*/
-            
-            Divider().padding(.vertical)
-            Text("Saved Topics")
-                .font(.headline)
-            List {
-                ForEach(viewModel.savedTopics) { topic in
-                    VStack(alignment: .leading) {
-                        Text(topic.title)
-                            .fontWeight(.bold)
-                        Text(topic.date, style: .date)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .contentShape(Rectangle()) // Makes the whole cell tappable
-                    .onTapGesture {
-                        selectedTopic = topic
-                    }
-                }
-                .onDelete { indexSet in
-                    indexSet.forEach { i in
-                        viewModel.deleteTopic(viewModel.savedTopics[i])
-                    }
-                }
-            }
-            .frame(height: 300)
         }
-        .padding([.leading, .trailing, .bottom])
-        .onTapGesture {
-            hideKeyboard()
-        }
-        .sheet(item: $selectedTopic) { topic in
-            TopicDetailView(topic: topic)
-        }
+        .onTapGesture { hideKeyboard() }
+        .sheet(item: $selectedTopic) { topic in TopicDetailView(topic: topic) }
         .alert("Save Topic", isPresented: $showSaveAlert, actions: {
             TextField("Topic Title", text: $topicTitle)
-            Button("Save") {
-                viewModel.saveCurrentTopic(title: topicTitle)
-                topicTitle = ""
-            }
+            Button("Save") { viewModel.saveCurrentTopic(title: topicTitle); topicTitle = "" }
             Button("Cancel", role: .cancel) { topicTitle = "" }
         })
         .onAppear { viewModel.loadSavedTopics() }

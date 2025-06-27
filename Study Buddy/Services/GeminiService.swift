@@ -101,9 +101,10 @@ class GeminiService: TextServiceProtocol {
         }
     }
     
-    func summarizeText(from text: String, wordCount: Int) async throws -> String {
+    func summarizeText(from text: String, wordCount: Int, languageCode: String) async throws -> String {
+        let languageName = Locale.current.localizedString(forIdentifier: languageCode) ?? "English"
         let prompt = """
-        Summarize the following text in approximately \(wordCount) words. Provide the summary as a single block of text, without any introductory phrases like "Here is the summary:".
+        Summarize the following text in approximately \(wordCount) words. The summary must be in \(languageName). Do not translate to English if the input is not English.
 
         Text:
         "\(text)"
@@ -117,9 +118,12 @@ class GeminiService: TextServiceProtocol {
             ],
             "generationConfig": [
                 "temperature": 0.5,
-                "maxOutputTokens": 250 // Max tokens for the output
+                "maxOutputTokens": 250
             ]
         ]
+
+        let apiKey = ConfigurationManager.shared.geminiAPIKey
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
         guard let url = URL(string: "\(endpoint)?key=\(apiKey)"),
               let httpBody = try? JSONSerialization.data(withJSONObject: requestBody) else {
@@ -137,7 +141,7 @@ class GeminiService: TextServiceProtocol {
         guard let summary = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
             throw FlashcardError.parsingError
         }
-        
+
         return summary.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     

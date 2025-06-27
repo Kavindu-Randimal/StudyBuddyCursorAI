@@ -2,43 +2,30 @@ import SwiftUI
 
 struct SummarizeView: View {
     @StateObject private var viewModel = SummarizeViewModel()
-    @State private var showCopiedMessage = false
+    @State private var showScanner = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Summarize Text")
+            Text("Summarize")
                 .font(.system(size: 28, weight: .bold))
                 .padding(.bottom, 8)
-            
-            Text("Enter text to summarize:")
-                .font(.headline)
-
-            ZStack(alignment: .topTrailing) {
-                TextEditor(text: $viewModel.userInput)
-                    .frame(minHeight: 150, maxHeight: 300)
-                    .border(Color.gray, width: 1)
-                    .cornerRadius(8)
-
-                if !viewModel.userInput.isEmpty {
-                    Button(action: {
-                        viewModel.userInput = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
-                            .padding(8)
+            HStack {
+                Button(action: { showScanner = true }) {
+                    Label("Scan Document", systemImage: "doc.text.viewfinder")
+                        .font(.headline)
+                }
+                .buttonStyle(GradientButtonStyle())
+                .sheet(isPresented: $showScanner) {
+                    DocumentScannerView { scannedText in
+                        viewModel.userInput = scannedText
                     }
                 }
+                Spacer()
             }
 
-            HStack {
-                Text("Summary Word Count:")
-                Spacer()
-                Text("\(viewModel.wordCount)")
-                    .fontWeight(.bold)
-                Stepper("", value: $viewModel.wordCount, in: 20...200, step: 10)
-                    .labelsHidden()
-            }
-            .padding(.vertical, 8)
+            TextEditor(text: $viewModel.userInput)
+                .frame(minHeight: 150, maxHeight: 300)
+                .gradientBorder()
 
             Button(action: {
                 hideKeyboard()
@@ -61,33 +48,16 @@ struct SummarizeView: View {
 
             if !viewModel.summary.isEmpty {
                 HStack {
-                    Text("Summary:")
+                    Text("Summary (\(viewModel.detectedLanguageName)):")
                         .font(.title2)
                         .fontWeight(.bold)
                     Spacer()
-                    if showCopiedMessage {
-                        Text("Copied!")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                            .transition(.opacity)
-                    }
-                    Button(action: {
-                        UIPasteboard.general.string = viewModel.summary
-                        withAnimation {
-                            showCopiedMessage = true
-                        }
-                        // Hide the message after 2 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showCopiedMessage = false
-                            }
-                        }
-                    }) {
-                        Image(systemName: "doc.on.doc")
-                            .imageScale(.large)
-                    }
+                    Text("Word count: \(viewModel.summaryWordCount)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                
+                .padding(.bottom, 2)
+
                 ScrollView {
                     Text(viewModel.summary)
                         .padding()
@@ -99,8 +69,6 @@ struct SummarizeView: View {
             Spacer()
         }
         .padding()
-        .onTapGesture {
-            hideKeyboard()
-        }
+        .onTapGesture { hideKeyboard() }
     }
 } 

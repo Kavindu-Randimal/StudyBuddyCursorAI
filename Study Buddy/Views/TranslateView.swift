@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TranslateView: View {
     @StateObject private var viewModel = TranslateViewModel()
+    @State private var showScanner = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -12,10 +13,24 @@ struct TranslateView: View {
             Text("Enter text to translate:")
                 .font(.headline)
 
+            HStack {
+                Button(action: { showScanner = true }) {
+                    Label("Scan Document", systemImage: "doc.text.viewfinder")
+                        .font(.headline)
+                }
+                .buttonStyle(GradientButtonStyle())
+                .sheet(isPresented: $showScanner) {
+                    DocumentScannerView { scannedText in
+                        viewModel.userInput = scannedText
+                    }
+                }
+                Spacer()
+            }
+
             ZStack(alignment: .topTrailing) {
                 TextEditor(text: $viewModel.userInput)
                     .frame(minHeight: 150, maxHeight: 300)
-                    .border(Color.gray, width: 1)
+                    .gradientBorder()
                     .cornerRadius(8)
                     .foregroundColor(.primary)
                     .background(Color(.systemBackground))

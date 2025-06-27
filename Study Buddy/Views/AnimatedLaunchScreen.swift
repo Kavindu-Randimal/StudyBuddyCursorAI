@@ -71,9 +71,9 @@ struct AnimatedLaunchScreen: View {
         }
         .onAppear {
             animate = true
-            // Hide after 2.5 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                withAnimation(.easeInOut(duration: 0.7)) {
+            // Hide after 3.5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                withAnimation(.easeInOut(duration: 0.9)) {
                     finished = true
                 }
             }

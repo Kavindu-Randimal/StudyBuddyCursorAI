@@ -1,4 +1,4 @@
-import SwiftUI
+/*import SwiftUI
 
 struct GradientBorderModifier: ViewModifier {
     var cornerRadius: CGFloat = 8
@@ -20,7 +20,7 @@ struct GradientBorderModifier: ViewModifier {
 }
 
 extension View {
-    func gradientBorder(cornerRadius: CGFloat = 8, lineWidth: CGFloat = 2) -> some View {
+    func gradientBorder(cornerRadius: CGFloat = 8, lineWidth: CGFloat = 1) -> some View {
         self.modifier(GradientBorderModifier(cornerRadius: cornerRadius, lineWidth: lineWidth))
     }
-} 
+} */
